@@ -1,0 +1,8 @@
+{
+  "runtimeOptions": {
+    "additionalProbingPaths": [
+      "C:\\Users\\Scarpitta\\.dotnet\\store\\|arch|\\|tfm|",
+      "C:\\Users\\Scarpitta\\.nuget\\packages"
+    ]
+  }
+}
