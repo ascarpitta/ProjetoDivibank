@@ -5,9 +5,11 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.HttpsPolicy;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using ProjetoDivibank.Models;
 
 namespace ProjetoDivibank
 {
@@ -24,6 +26,9 @@ namespace ProjetoDivibank
         public void ConfigureServices(IServiceCollection services)
         {
             services.AddRazorPages();
+            services.AddEntityFrameworkNpgsql()
+            .AddDbContext<ClientContext>(options => options.UseNpgsql(Configuration.GetConnectionString("DbContextSettings")));
+            services.AddControllersWithViews();
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
