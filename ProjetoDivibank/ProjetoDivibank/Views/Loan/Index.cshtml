@@ -1,0 +1,211 @@
+﻿
+@{
+    ViewData["Title"] = "Pedidos";
+}
+<style>
+	i {
+		cursor: pointer;
+	}
+</style>
+
+<h1>Pedidos</h1>
+
+<div class="container">
+	<div class="col-lg-12">
+		<form>
+			<div class="row">
+				<div class="form-group col-lg-4">
+					<select class="form-control" id="clientes">
+						<option value="0">Selecione um Cliente</option>
+					</select>
+				</div>
+			</div>
+			<div class="row">
+				<div class="form-group col-lg-4">
+					<label for="dtPedido">Data do Pedido</label>
+					<input type="text" class="form-control" id="dtPedido">
+				</div>
+				<div class="form-group col-lg-4">
+					<label for="vlPedido">Valor do Pedido</label>
+					<input type="text" class="form-control" id="vlPedido">
+				</div>
+			</div>
+			<button class="btn btn-primary" id="btnSalvar">Salvar</button>
+		</form>
+	</div>
+	<div class="col-lg-12 mt-5">
+		<table class="table">
+			<thead>
+				<tr>
+					<th scope="col">Nome do Cliente</th>
+					<th scope="col">Data do Pedido</th>
+					<th scope="col">Valor do Pedido</th>
+				</tr>
+			</thead>
+			<tbody>
+			</tbody>
+		</table>
+	</div>
+</div>
+
+
+<script>
+	$(document).ready(function () {
+		id_editando = 0;
+
+		getLoans = function () {
+			$.ajax({
+				url: "Loans/GetLoans",
+				method: "Post",
+				success: function (data) {
+					console.info(data)
+				}
+			})
+		}
+
+		getLoan = function (id) {
+			$.ajax({
+				url: "Loans/GetLoan",
+				method: "Post",
+				data: {
+					id: id,
+				},
+				success: function (data) {
+					setFields(data)
+				}
+			})
+		}
+
+		getClientLoans = function (idCliente) {
+			$.ajax({
+				url: "Loans/GetClientLoans",
+				method: "Post",
+				data: {
+					idCliente: idCliente,
+				},
+				success: function (data) {
+					buildTableBody(data)
+				}
+			})
+		}
+
+		addLoan = function (dataPedido, valor, idCliente) {
+			valor = valor.replace(".", "")
+			$.ajax({
+				url: "Loans/AddLoan",
+				method: "Post",
+				data: {
+					dtPedido: dataPedido,
+					vlPedido: valor,
+					idCliente: idCliente
+				},
+				success: function (data) {
+					clearFields();
+					getClientLoans($("#clientes").val());
+				}
+			})
+		}
+
+		editLoan = function (idPedido, dataPedido, valor, idCliente) {
+			valor = valor.replace(".", "")
+			$.ajax({
+				url: "Loans/EditLoan",
+				method: "Post",
+				data: {
+					idPedido: idPedido,
+					dtPedido: dataPedido,
+					vlPedido: valor,
+					idCliente: idCliente
+				},
+				success: function (data) {
+					clearFields();
+					getClientLoans($("#clientes").val());
+				}
+			})
+		}
+
+		deleteLoan = function (idPedido) {
+			$.ajax({
+				url: "Loans/DeleteLoan",
+				method: "Post",
+				data: {
+					id: idPedido
+				},
+				success: function (data) {
+					getClientLoans($("#clientes").val());
+				}
+			})
+		}
+
+		getClients = function () {
+			$.ajax({
+				url: "Clients/GetClients",
+				method: "Post",
+				success: function (data) {
+					fillClientSelect(data)
+				}
+			})
+		}
+
+		fillClientSelect = function (data) {
+			data.forEach(function (currentValue, index) {
+				$('#clientes').append(`<option value="${currentValue.idCliente}">
+                                       ${currentValue.nomeCliente}
+                                  </option>`);
+			});
+		}
+
+		clearFields = function () {
+			$("#dtPedido").val("");
+			$("#vlPedido").val("");
+			id_editando = 0;
+		}
+
+		setFields = function (data) {
+			$("#dtPedido").val(`${data.dtPedido.toString().substring(8, 10)}/${data.dtPedido.toString().substring(5, 7)}/${data.dtPedido.toString().substring(0, 4)}`);
+			$("#vlPedido").val(data.vlPedido);
+			id_editando = data.idPedido;
+			console.info(id_editando)
+		}
+
+		buildTableBody = function (data) {
+			var tbody = $("tbody");
+			tbody.empty();
+			data.forEach(function (currentValue, index) {
+				tbody.append("<tr>" +
+					`<td>${currentValue.nomeCliente}</td>
+					<td>${currentValue.dtPedido.toString().substring(8, 10)}/${currentValue.dtPedido.toString().substring(5, 7)}/${currentValue.dtPedido.toString().substring(0, 4)}</td>" +
+					<td>${currentValue.vlPedido}</td>
+					<td><i class="fas fa-pencil-alt edit" id="${currentValue.idPedido}"></i>&nbsp;&nbsp;<i class="fas fa-times delete" id="${currentValue.idPedido}"></i></td>
+					</tr>`);
+				console.info(currentValue)
+			});
+
+			$(".delete").click(function () {
+				deleteLoan($(this).attr("id"));
+			})
+
+			$(".edit").click(function () {
+				getLoan($(this).attr("id"));
+			})
+		}
+
+		$("#clientes").change(function () {
+			getClientLoans($(this).val());
+			clearFields();
+		});
+
+		$("#btnSalvar").click(function (e) {
+			if (id_editando > 0) {
+				editLoan(id_editando, $("#dtPedido").val(), $("#vlPedido").val(), $("#clientes").val());
+			} else {
+				addLoan($("#dtPedido").val(), $("#vlPedido").val(), $("#clientes").val());
+			}
+			e.preventDefault();
+		})
+
+		getClients();
+		$("#dtPedido").mask("99/99/9999");
+		$("#vlPedido").mask('000.000.000.000.000,00', { reverse: true });
+    })
+</script>

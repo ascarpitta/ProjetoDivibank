@@ -1,110 +1,135 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using ProjetoDivibank.Models;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using ProjetoDivibank.DAO;
+using ProjetoDivibank.Models;
 
-namespace ProjetoDivibank.DAO
+namespace ProjetoDivibank.Controllers
 {
     public class LoanController : Controller
     {
-        private readonly LoanContext _context;
+        private readonly EFContext _context;
 
-        public LoanController(LoanContext context)
+        public LoanController(EFContext context)
         {
             _context = context;
         }
 
-        public async Task<IActionResult> CreatePedido([Bind("idPedido,dtPedido,vlPedido,idCliente")] Loan loan)
+        public IActionResult Index()
         {
-            //loan.Loans.
-            using (var clientContext = new ClientController(new ClientContext()))
+            return View();
+        }
+
+        [HttpPost("Loans/GetLoans")]
+        public List<Loan> GetLoans()
+        {
+            return _context.Loans.ToList();
+        }
+
+        [HttpPost("Loans/GetClientLoans")]
+        public dynamic GetClientLoans(long idCliente)
+        {
+            return (from c in _context.Clients.ToList()
+                    join p in _context.Loans.ToList() on c.idCliente equals p.idCliente
+                    where c.idCliente == idCliente
+                    select new
+                    {
+                        c.nomeCliente,
+                        p.dtPedido,
+                        p.vlPedido,
+                        p.idPedido
+                    }).ToList();
+        }
+
+        [HttpPost("Loans/GetLoan")]
+        public Loan GetLoan(long id)
+        {
+            var loan = _context.Loans
+                .FirstOrDefault(m => m.idPedido == id);
+            if (loan == null)
             {
-                if (clientContext.ClientExists(loan.idCliente))
+                return new Loan();
+            }
+
+            return loan;
+        }
+
+        [HttpPost("Loans/AddLoan")]
+        public bool Create([Bind("dtPedido,vlPedido,idCliente")] Loan loan)
+        {
+
+            using (var clientController = new ClientController(_context))
+            {
+                if (clientController.ClientExists(loan.idCliente))
                 {
-                    if (ModelState.IsValid)
+                    try
                     {
                         _context.Add(loan);
-                        await _context.SaveChangesAsync();
-                        return RedirectToAction(nameof(Index));
-                    }                    
+                        _context.SaveChanges();
+                    }
+                    catch (DbUpdateConcurrencyException ex)
+                    {
+                        return false;
+                    }
+                    return true;
                 }
             }
-            return View(loan);
+            return false;
         }
 
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        public async Task<IActionResult> EditPedido(long id, [Bind("idPedido,dtPedido,vlPedido,idCliente")] Loan loan)
+        [HttpPost("Loans/EditLoan")]
+        public bool Edit([Bind("idPedido,dtPedido,vlPedido,idCliente")] Loan loan)
         {
-            if (id != loan.idPedido)
+            using (var clientController = new ClientController(_context))
             {
-                return NotFound();
-            }
-
-            if (ModelState.IsValid)
-            {
-                try
+                if (clientController.ClientExists(loan.idCliente))
                 {
-                    _context.Update(loan);
-                    await _context.SaveChangesAsync();
-                }
-                catch (DbUpdateConcurrencyException)
-                {
-                    if (!LoanExists(loan.idPedido))
+                    try
                     {
-                        return NotFound();
+                        if (!LoanExists(loan.idPedido))
+                        {
+                            return false;
+                        }
+                        _context.Update(loan);
+                        _context.SaveChangesAsync();
                     }
-                    else
+                    catch (DbUpdateConcurrencyException)
                     {
-                        throw;
+                        return false;
                     }
+                    return true;
                 }
-                return RedirectToAction(nameof(Index));
             }
-            return View(loan);
+            return false;
         }
 
-        [HttpPost, ActionName("Delete")]
-        [ValidateAntiForgeryToken]
-        public async Task<IActionResult> DeleteConfirmed(long id)
+        [HttpPost("Loans/DeleteLoan")]
+        public bool Delete(long id)
         {
-            var loan = await _context.Loans.FindAsync(id);
-            _context.Loans.Remove(loan);
-            await _context.SaveChangesAsync();
-            return RedirectToAction(nameof(Index));
+            try
+            {
+                if (!LoanExists(id))
+                {
+                    return false;
+                }
+                var loan = _context.Loans
+                    .FirstOrDefault(m => m.idPedido == id);
+                _context.Loans.Remove(loan);
+                _context.SaveChanges();
+            }
+            catch (DbUpdateConcurrencyException)
+            {
+                return false;
+            }
+            return true;
         }
 
         private bool LoanExists(long id)
         {
             return _context.Loans.Any(e => e.idPedido == id);
-        }
-
-
-        public async Task<IActionResult> BuscarPedidos()
-        {
-            return View(await _context.Loans.ToListAsync());
-        }
-
-
-        // GET: Home/Details/5
-        public async Task<IActionResult> BuscarPedido(long? id)
-        {
-            if (id == null)
-            {
-                return NotFound();
-            }
-
-            var pedido = await _context.Loans
-                .FirstOrDefaultAsync(m => m.idPedido == id);
-            if (pedido == null)
-            {
-                return NotFound();
-            }
-
-            return View(pedido);
         }
     }
 }

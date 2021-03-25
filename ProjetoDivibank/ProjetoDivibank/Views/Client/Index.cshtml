@@ -1,0 +1,201 @@
+﻿
+@{
+	ViewData["Title"] = "Clientes";
+}
+<style>
+	i {
+		cursor: pointer;
+	}
+</style>
+
+<h1>Clientes</h1>
+
+<div class="container">
+	<ul class="nav nav-tabs">
+		<li id="navTabVisualizar" class="active">
+			<a href="#tabVisualizar" data-toggle="tab">Visualizar Clientes</a>
+		</li>
+		<li id="navTabFormCliente">
+			<a href="#tabFormCliente" data-toggle="tab">Formulário Clientes</a>
+		</li>
+	</ul>
+
+	<div class="tab-content">
+		<div class="tab-pane active" id="tabVisualizar">
+			<table class="table">
+				<thead>
+					<tr>
+						<th scope="col">Nome do Cliente</th>
+						<th scope="col">Data de Nascimento</th>
+						<th scope="col">Ações</th>
+					</tr>
+				</thead>
+				<tbody>
+				</tbody>
+			</table>
+		</div>
+		<div class="tab-pane" id="tabFormCliente">
+			<div class="tab-pane" id="2">
+				<div class="m-5">
+					<form>
+						<div class="form-group">
+							<label for="txtNome">Nome</label>
+							<input type="text" class="form-control" id="txtNome">
+						</div>
+						<div class="form-group">
+							<label for="dtBirthDate">Data de Nascimento</label>
+							<input type="text" class="form-control" id="dtBirthDate">
+						</div>
+						<button class="btn btn-primary" id="btnSalvar">Salvar</button>
+					</form>
+				</div>
+			</div>
+		</div>
+	</div>
+</div>
+<script>
+	$("document").ready(function () {
+		id_editando = 0;
+
+		getClients = function () {
+			$.ajax({
+				url: "Clients/GetClients",
+				method: "Post",
+				success: function (data) {
+					buildTableBody(data)
+				}
+			})
+		}
+
+		getClient = function (id) {
+			$.ajax({
+				url: "Clients/GetClient",
+				method: "Post",
+				data: {
+					id: id
+				},
+				success: function (data) {
+					setFields(data);
+				}
+			})
+		}
+
+		deleteClient = function (id) {
+			$.ajax({
+				url: "Clients/DeleteClient",
+				method: "Post",
+				data: {
+					id: id
+				},
+				success: function (data) {
+					if (data) {
+						alert("Cliente excluído com sucesso!")
+					}
+					else {
+						alert("Erro na exclusão do cliente!")
+					}
+					getClients();
+				}
+			})
+		}
+
+		editClient = function (id, nome, birth) {
+			$.ajax({
+				url: "Clients/EditClient",
+				method: "Post",
+				data: {
+					idCliente: id,
+					nomeCliente: nome,
+					birthdateCliente: birth
+				},
+				success: function (data) {
+					if (data) {
+						alert("Cliente editado com sucesso!")
+					}
+					else {
+						alert("Erro na edição do cliente!")
+					}
+					id_editando = 0;
+					getClients();
+					$(".active").removeClass("active")
+					$("#navTabVisualizar").addClass("active");
+					$("#tabVisualizar").addClass("active");
+				}
+			})
+		}
+
+		addClient = function (nome, birth) {
+			$.ajax({
+				url: "Clients/AddClient",
+				method: "Post",
+				data: {
+					nomeCliente: nome,
+					birthdateCliente: birth
+				},
+				success: function (data) {
+					if (data) {
+						alert("Cliente cadastrado com sucesso!")
+					}
+					else {
+						alert("Erro no cadastro do cliente!")
+					}
+					getClients();
+					$(".active").removeClass("active")
+					$("#navTabVisualizar").addClass("active");
+					$("#tabVisualizar").addClass("active");
+				}
+			})
+		}
+
+		buildTableBody = function (data) {
+			var tbody = $("tbody");
+			tbody.empty();
+			data.forEach(function (currentValue, index) {
+				tbody.append("<tr>" +
+					"<td>" + currentValue.nomeCliente + "</td>" +
+					"<td>" + currentValue.birthdateCliente.toString().substring(8, 10) + "/" + currentValue.birthdateCliente.toString().substring(5, 7) + "/" + currentValue.birthdateCliente.toString().substring(0, 4) + "</td>" +
+					"<td><i class=\"fas fa-pencil-alt edit\" id=\"" + currentValue.idCliente + "\"></i>&nbsp;&nbsp;<i class=\"fas fa-times delete\" id=\"" + currentValue.idCliente + "\"></i></td>" +
+					"</tr>");
+			})
+			$(".delete").click(function () {
+				deleteClient($(this).attr("id"));
+			})
+
+			$(".edit").click(function () {
+				$(".active").removeClass("active")
+				$("#navTabFormCliente").addClass("active");
+				$("#tabFormCliente").addClass("active");
+				getClient($(this).attr("id"));
+			})
+		}
+
+		clearFields = function () {
+			$("#txtNome").val("");
+			$("#dtBirthDate").val("");
+			id_editando = 0;
+		}
+
+		setFields = function (data) {
+			$("#txtNome").val(data.nomeCliente);
+			$("#dtBirthDate").val(data.birthdateCliente.toString().substring(8, 10) + "/" + data.birthdateCliente.toString().substring(5, 7) + "/" + data.birthdateCliente.toString().substring(0, 4));
+			id_editando = data.idCliente;
+		}
+
+		$("#btnSalvar").click(function (e) {
+			if (id_editando > 0) {
+				editClient(id_editando, $("#txtNome").val(), $("#dtBirthDate").val());
+			} else {
+				addClient($("#txtNome").val(), $("#dtBirthDate").val());
+			}
+			e.preventDefault();
+		})
+
+		$("#navTabVisualizar").click(function () {
+			getClients();
+			clearFields();
+		})
+
+		getClients();
+		$("#dtBirthDate").mask("99/99/9999");
+	})
+</script>

@@ -14,22 +14,7 @@ namespace ProjetoDivibank.Models
         [Key]
         public long idPedido { get; set; }
         public DateTime dtPedido { get; set; }
-        public float vlPedido { get; set; }
+        public decimal vlPedido { get; set; }
         public long idCliente { get; set; }
-    }
-
-    public class LoanContext : DbContext
-    {
-        public DbSet<Loan> Loans { get; set; }
-
-        public LoanContext(DbContextOptions<LoanContext> options) :
-            base(options)
-        {
-        }
-
-        public LoanContext()
-        {
-
-        }
     }
 }

@@ -1,103 +1,105 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using ProjetoDivibank.Models;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using ProjetoDivibank.DAO;
+using ProjetoDivibank.Models;
 
-namespace ProjetoDivibank.DAO
+namespace ProjetoDivibank.Controllers
 {
     public class ClientController : Controller
     {
-        private readonly ClientContext _context;
+        private readonly EFContext _context;
 
-        public ClientController(ClientContext context)
+        public ClientController(EFContext context)
         {
             _context = context;
         }
 
-        public async Task<IActionResult> CreateCliente([Bind("idCliente,nomeCliente,birthdateCliente")] Client cliente)
+        public IActionResult Index()
         {
-            if (ModelState.IsValid)
-            {
-                _context.Add(cliente);
-                await _context.SaveChangesAsync();
-                return RedirectToAction(nameof(Index));
-            }
-            return View(cliente);
+            return View();
         }
 
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        public async Task<IActionResult> EditCliente(long id, [Bind("idCliente,nomeCliente,birthdateCliente")] Client cliente)
+        [HttpPost("Clients/GetClients")]
+        public List<Client> GetClients()
         {
-            if (id != cliente.idCliente)
-            {
-                return NotFound();
-            }
-
-            if (ModelState.IsValid)
-            {
-                try
-                {
-                    _context.Update(cliente);
-                    await _context.SaveChangesAsync();
-                }
-                catch (DbUpdateConcurrencyException)
-                {
-                    if (!ClientExists(cliente.idCliente))
-                    {
-                        return NotFound();
-                    }
-                    else
-                    {
-                        throw;
-                    }
-                }
-                return RedirectToAction(nameof(Index));
-            }
-            return View(cliente);
+            return _context.Clients.ToList();
         }
 
-        [HttpPost, ActionName("Delete")]
-        [ValidateAntiForgeryToken]
-        public async Task<IActionResult> DeleteConfirmed(long id)
+        [HttpPost("Clients/GetClient")]
+        public Client GetClient(long id)
         {
-            var client = await _context.Clients.FindAsync(id);
-            _context.Clients.Remove(client);
-            await _context.SaveChangesAsync();
-            return RedirectToAction(nameof(Index));
+            var client = _context.Clients
+                .FirstOrDefault(m => m.idCliente == id);
+            if (client == null)
+            {
+                return new Client();
+            }
+
+            return client;
+        }
+
+        [HttpPost("Clients/AddClient")]
+        public bool Create([Bind("birthdateCliente,nomeCliente")] Client client)
+        {
+            try
+            {
+                _context.Add(client);
+                _context.SaveChanges();
+            }
+            catch (DbUpdateConcurrencyException ex)
+            {
+                return false;
+            }
+            return true;
+        }
+
+        [HttpPost("Clients/EditClient")]
+        public bool Edit([Bind("idCliente,birthdateCliente,nomeCliente")] Client client)
+        {
+            try
+            {
+                if (!ClientExists(client.idCliente))
+                {
+                    return false;
+                }
+                _context.Update(client);
+                _context.SaveChanges();
+            }
+            catch (DbUpdateConcurrencyException)
+            {
+                return false;
+            }
+            return true;
+        }
+
+        [HttpPost("Clients/DeleteClient")]
+        public bool Delete(long id)
+        {
+            try
+            {
+                if (!ClientExists(id))
+                {
+                    return false;
+                }
+                var client = _context.Clients
+                    .FirstOrDefault(m => m.idCliente == id);
+                _context.Clients.Remove(client);
+                _context.SaveChanges();
+            }
+            catch (DbUpdateConcurrencyException)
+            {
+                return false;
+            }
+            return true;
         }
 
         public bool ClientExists(long id)
         {
             return _context.Clients.Any(e => e.idCliente == id);
-        }
-
-
-        public async Task<IActionResult> BuscarClientes()
-        {
-            return View(await _context.Clients.ToListAsync());
-        }
-
-
-        // GET: Home/Details/5
-        public async Task<IActionResult> BuscarCliente(long? id)
-        {
-            if (id == null)
-            {
-                return NotFound();
-            }
-
-            var cliente = await _context.Clients
-                .FirstOrDefaultAsync(m => m.idCliente == id);
-            if (cliente == null)
-            {
-                return NotFound();
-            }
-
-            return View(cliente);
         }
     }
 }
