@@ -8,7 +8,7 @@ using System.Threading.Tasks;
 
 namespace ProjetoDivibank.Models
 {
-    [Table("tb_Clientes")]
+    [Table("tb_clientes")]
     public class Client
     {
         [Key]
